@@ -1,0 +1,20 @@
+# секреты (реальные креды только локально)
+.env
+
+# локальное состояние
+.cache/
+reports/artifacts/
+reports/screenshots/
+reports/traces/
+
+# node / playwright
+node_modules/
+playwright-report/
+test-results/
+package-lock.json
+
+# мусор
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
