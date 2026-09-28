@@ -1,0 +1,27 @@
+{
+  "name": "ai-qa-sandbox-test",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-driven QA of the Medusa v2 sandbox (API + UI + NFR)",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui",
+    "test:nfr": "playwright test --project=nfr"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0",
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.3",
+    "ajv-formats": "^3.0.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "yaml": "^2.9.1"
+  },
+  "dependencies": {
+    "@medusajs/js-sdk": "^2.21.1",
+    "ajv": "^8.20.0",
+    "zod": "^4.6.5"
+  }
+}

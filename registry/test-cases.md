@@ -2,6 +2,46 @@
 
 > Индекс кейсов по областям риска (см. docs/PLAN.md §6). Детальные шаги — внутри кейса.
 
+Статусы: `спланирован` / `наблюдение` / `кандидат` / `подтверждено` / `дефект BUG-XXX`.
+
 | ID | Область | Название | Тип (API/UI/NFR) | Статус | Дефект(ы) |
 |----|---------|----------|------------------|--------|-----------|
-| TC-001 | — | — | — | — | — |
+| TC-001 | Пагинация | `count` в `/store/products` = размер страницы вместо общего числа; Admin API корректен | API | воспроизведён детерминированно: `tests/api/store-products-count.spec.ts` (6 проверок падают), артефакты `reports/artifacts/store-products-count/` | BUG-001 |
+| TC-002 | Валидация | `limit=-1` / `offset=-1` → HTTP 500 вместо 4xx (также отрицательные в научной нотации; подтверждено и в Admin, и на других Store-эндпоинтах) | API | воспроизведён детерминированно: `tests/api/store-input-validation.spec.ts` + `tests/api/admin-input-validation.spec.ts`, артефакты в `reports/artifacts/` | BUG-002 |
+| TC-003 | Служебные пути | Корневые несуществующие «файловые» пути (`/.env`, `/.gitignore`, `/package.json`, `/robots.txt`, `/sitemap.xml`, `/openapi.json`) → 200 HTML витрины | API/UI | подтверждено (чекпойнт 4.2): расширено; `tests/nfr/security-perimeter.spec.ts` NFR-PERI-3, артефакты `reports/artifacts/nfr-perimeter/path-probes.json` | BUG-019 |
+| TC-004 | Метаданные/SEO | `og:image`/`twitter:image` ссылаются на `127.0.0.1:8000` | UI/SEO | наблюдение | — |
+| TC-005 | Безопасность | Наличие HSTS/CSP/X-Frame-Options/X-Content-Type-Options | NFR | подтверждено: отсутствуют на всех поверхностях (кроме Express-404); `tests/nfr/security-headers.spec.ts` (4 падения), артефакты `reports/artifacts/nfr-headers/` | BUG-013 |
+| TC-006 | Чекаут | Полный флоу корзины (items → email/адрес → shipping → payment → complete) + inventory | API | подтверждено: `tests/api/cart-checkout.spec.ts` (11/11) — заказ создаётся (eur), повторный complete идемпотентен (тот же order, без дубля), заказ доступен по id (200), резерв инвентаря +2 | — |
+| TC-007 | Заказы (UI) | Страница `/dk/order/{id}/confirmed` при несуществующем заказе | UI | спланирован (этап 3) | — |
+| TC-008 | Согласованность | Дифф Store ↔ Admin: товары, цены, каналы, инвентарь, заказы | API | подтверждено: `tests/api/store-admin-diff.spec.ts` (5/5, расхождений нет); Store не отдаёт `sku` (fields отбрасываются по спеке); расхождения required-полей — TC-013 | — |
+| TC-009 | Витрина | Наличие/отсутствие поиска и коллекций vs стоковый starter | UI | спланирован (этап 3, A-002) | — |
+| TC-010 | Фильтры | Несуществующий `category_id` тихо игнорируется (200, пусто) | API | наблюдение (решить по эталону) | — |
+| TC-011 | Admin UI | Карта маршрутов админки; 404 на неизвестный маршрут — корректна | UI | подтверждено (эталон консистентности) | — |
+| TC-012 | Валюты | Цены витрины в валюте региона (eur) | UI | подтверждено (`€10.00`) | — |
+| TC-013 | Контракты | Расхождение required-полей спеки и ответов (Store products: `status`/`external_id`/`deleted_at`; categories: `deleted_at`; currencies/страны: timestamps/`id`; Store=Admin для currencies/стран, Store≠Admin для products) | API | наблюдение + артефакты `store-contracts/*-spec-deviations.json`; required-списки идентичны в спеках v2.15.0/v2.18.0/v2.21.1 → вероятная неточность спеки, не дефект песочницы (нужен вердикт на чекпойнте) | — |
+| TC-014 | Границы корзины | quantity 0/-1/abc → 4xx; oversell (`available+1`) → 400 `insufficient_inventory` на добавлении | API | подтверждено: `tests/api/cart-checkout.spec.ts`, артефакты `reports/artifacts/cart-checkout/11-…13-*.json` | — |
+| TC-015 | Валидация | Невалидный `order` (пусто/`xyz`) → 500 на products/regions/collections/return-reasons/product-categories; подтверждено и в Admin (`/admin/products?order=`) | API | воспроизведён детерминированно: `tests/api/store-input-validation.spec.ts` + `tests/api/admin-input-validation.spec.ts` | BUG-003 |
+| TC-016 | Валидация | Невалидные date-фильтры `updated_at`/`created_at` → 500 на categories/collections/options/products; подтверждено и в Admin | API | воспроизведён детерминированно: `tests/api/store-input-validation.spec.ts` + `tests/api/admin-input-validation.spec.ts` | BUG-004 |
+| TC-017 | Фаззинг | Schemathesis GET-only по Store-спеке: 33 операции, 602 кейса, 11 server error (изолированы в TC-002/015/016), 9 content-type (расхождение спеки) | API | выполнен: `reports/artifacts/schemathesis/` (run.log, json, summary.md) | — |
+| TC-018 | UI/конфиг | `/dk/store` обращается к `http://127.0.0.1:9001/store/product-options` (ERR_CONNECTION_REFUSED, console error «Failed to fetch product options») | UI | воспроизведён детерминированно (чекпойнт 3.2): `tests/ui/storefront.spec.ts` UI-1; артефакты `reports/artifacts/ui-storefront/ui-1-*` | BUG-005 |
+| TC-019 | UI/SEO | Несуществующий заказ: HTTP 200 + title «Order Confirmed» при тексте «Page not found» | UI | воспроизведён детерминированно (чекпойнт 3.2): `tests/ui/storefront.spec.ts` UI-2 | BUG-006 |
+| TC-020 | UI/SEO | Дублирование title категорий «Shirts \| Medusa Store \| Medusa Store» (баг апстрим dtc-starter) | UI | воспроизведён детерминированно (чекпойнт 3.2): `tests/ui/storefront.spec.ts` UI-3 | BUG-007 |
+| TC-021 | UI | Дубль значения в селекте количества на `/dk/cart` (1…10 + повтор текущего) | UI | воспроизведён детерминированно (чекпойнт 3.2): `tests/ui/storefront.spec.ts` UI-4; артефакты `reports/artifacts/ui-storefront/ui-4-evidence.json` | BUG-008 |
+| TC-022 | UI | Чекаут happy-path через UI: address → delivery → payment → review → заказ | UI | подтверждено (контур А): заказ `order_01M3KPSPKBY4W3694XFA3S1P6F`, скриншоты `ui-recon/checkout-*.png` | — |
+| TC-023 | UI | Мобильный вьюпорт 390×844: главная/store/PDP без горизонтального оверфлоу, меню работает | UI | подтверждено: `tests/ui/mobile.spec.ts` (3/3) | — |
+| TC-024 | UI/Админка | Страницы админки (orders/products/settings) без 5xx и ошибок страниц; фон 401/404 — шум cloud-проверки | UI | подтверждено с наблюдением: `tests/ui/admin.spec.ts`, `reports/artifacts/ui-admin/` | — |
+| TC-025 | Доставка | `POST /store/shipping-options/{id}/calculate` (валидный `cart_id`) → 500 на обеих опциях | API | воспроизведён детерминированно (чекпойнт 3.2): `tests/api/shipping-calculate.spec.ts` (6/6); артефакты `reports/artifacts/store-shipping-calculate/` | BUG-009 |
+| TC-026 | Admin/валидация | Admin: невалидные значения (offset/limit/order/created_at; `stock-locations {}`; `name:123`; `regions currency:""`) → 500 | API | воспроизведён детерминированно (чекпойнт 3.2): `tests/api/admin-input-validation.spec.ts` (11 падений); артефакты `reports/artifacts/admin-input-validation/` | BUG-010 |
+| TC-027 | Регионы | `POST /admin/regions {currency_code:"zzz"}` → 200 и создание региона с несуществующей валютой | API | воспроизведён детерминированно (чекпойнт 3.2): `tests/api/admin-input-validation.spec.ts` (регион удаляется тестом); артефакты `reports/artifacts/admin-input-validation/region-invalid-currency*.json` | BUG-011 |
+| TC-028 | UI-навигация | Ссылка «Customer Service» ведёт на несуществующий `/dk/customer-service` (404) | UI | воспроизведён детерминированно (чекпойнт 3.2): `tests/ui/storefront.spec.ts` UI-6; артефакты `reports/artifacts/ui-storefront/ui-6-*` | BUG-012 |
+| TC-029 | Акции/флоу (чисто) | Углублённые проверки: математика 10% промо (10→9, скидка 1), offset-идентичность пагинации, трансфер заказа (accept требует токен владельца), адреса (поля опциональны по спеке), CreateCart без region — по спеке | API | подтверждено (наблюдения зафиксированы) | — |
+| TC-030 | Безопасность | Кликджекинг: `/dk` и `/app` встраиваются в чужой iframe и рендерятся | NFR | подтверждено: `tests/nfr/security-perimeter.spec.ts` NFR-PERI-2, артефакты `nfr-perimeter/clickjacking.json` | BUG-013 |
+| TC-031 | HTTP-семантика | Корневые несуществующие «файловые» пути → 200 HTML (расширение TC-003) | NFR | подтверждено: NFR-PERI-3, `nfr-perimeter/path-probes.json` | BUG-019 |
+| TC-032 | Доступность | Поля форм без меток: checkout (8 полей + select), account, cart, Admin login | NFR | подтверждено: `tests/nfr/a11y.spec.ts` NFR-A11Y-3/6, axe-артефакты `nfr-a11y/` | BUG-014 |
+| TC-033 | Доступность | Кнопки без доступного имени: cart, PDP, Admin (orders/products/settings/inventory) | NFR | подтверждено: NFR-A11Y-2/4, `nfr-a11y/admin-summary.json` | BUG-015 |
+| TC-034 | Доступность | Изображения без `alt`: витрина (store/PDP/категория) и Admin products | NFR | подтверждено: NFR-A11Y-1/5, `nfr-a11y/storefront-summary.json` | BUG-016 |
+| TC-035 | Доступность | Контраст ниже порога AA: account, cart, checkout, 404, Admin login | NFR | подтверждено: NFR-A11Y-3/5/6, `nfr-a11y/checkout-summary.json` | BUG-017 |
+| TC-036 | Доступность | Ссылки футера без текста + nested-interactive поповер (апстрим dtc-starter) | NFR | подтверждено: NFR-A11Y-1/7, `nfr-a11y/mobile-summary.json` | BUG-018 |
+| TC-037 | Границы auth | Customer↔Admin токены изолированы; подделка токена → 401; admin-токен на Store → 401 | NFR | подтверждено: `tests/nfr/auth.spec.ts` (4/4), артефакты `nfr-auth/` | — |
+| TC-038 | Производительность | Baseline: 9 эндпоинтов × 2×10 замеров, 0 ошибок; медианы 94–409 мс, p95 ≤ 617 мс | NFR | подтверждено (baseline): `tests/nfr/perf.spec.ts` (10/10), `reports/artifacts/nfr-perf/aggregate.json` | — |
+| TC-039 | Инфраструктура | HTTP :80 не отвечает (socket hang up, редиректа на HTTPS нет) | NFR | наблюдение: `nfr-perimeter/http-redirect.json` | — |

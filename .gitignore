@@ -3,6 +3,8 @@
 
 # локальное состояние
 .cache/
+.schemathesis/
+.freebuff/
 reports/artifacts/
 reports/screenshots/
 reports/traces/
